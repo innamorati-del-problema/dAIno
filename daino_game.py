@@ -1,0 +1,245 @@
+import os
+import pygame
+import random
+from time import sleep
+
+WIDTH = 800
+HEIGHT = 400
+FPS = 30
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+
+# Assets
+dino_run = [pygame.image.load(os.path.join("assets/Dino", "dino_run_1.png")),
+            pygame.image.load(os.path.join("assets/Dino", "dino_run_2.png"))]
+
+dino_duck = [pygame.image.load(os.path.join("assets/Dino", "dino_duck_1.png")),
+             pygame.image.load(os.path.join("assets/Dino", "dino_duck_2.png"))]
+
+dino_jump = [pygame.image.load(os.path.join("assets/Dino", "dino_still.png"))]
+
+ptero = [pygame.image.load(os.path.join("assets/Ptero", "ptero_1.png")),
+         pygame.image.load(os.path.join("assets/Ptero", "ptero_2.png"))]
+
+
+cactus_small = [pygame.image.load(os.path.join("assets/Cactus", "cactus_small_1.png")),
+                pygame.image.load(os.path.join("assets/Cactus", "cactus_small_2.png"))]
+
+cactus_big = [pygame.image.load(os.path.join("assets/Cactus", "cactus_big_1.png")),
+              pygame.image.load(os.path.join("assets/Cactus", "cactus_big_2.png"))]
+
+background_img = pygame.image.load(os.path.join("assets", 'background.png'))
+
+# Start settings
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("dAIno")
+clock = pygame.time.Clock()
+
+
+class Dinosaur:
+    X_POS = 20
+    Y_POS = 220
+    Y_POS_DUCK = 237
+    JUMP_VEL = 8.5
+
+    def __init__(self):
+        self.duck_img = dino_duck
+        self.run_img = dino_run
+        self.jump_img = dino_jump
+
+        self.is_running = True
+        self.is_jumping = False
+        self.is_ducking = False
+
+        self.animation_frame = 0
+        self.curr_jump_vel = self.JUMP_VEL
+        self.image = self.run_img[0]
+        self.dino_rect = self.image.get_rect()
+        self.dino_rect.x = self.X_POS
+        self.dino_rect.y = self.Y_POS
+
+    def update(self, userInput):
+        if self.is_ducking:
+            self.duck()
+        if self.is_jumping:
+            self.jump()
+        if self.is_running:
+            self.run()
+
+        if self.animation_frame >= 20:
+            self.animation_frame = 0
+
+        # Keyboard bindings
+        if userInput[pygame.K_SPACE] and not self.is_jumping:
+            self.is_jumping = True
+            self.is_running = False
+            self.is_ducking = False
+
+        elif userInput[pygame.K_DOWN] and not self.is_jumping:
+            self.is_jumping = False
+            self.is_running = False
+            self.is_ducking = True
+
+        elif not (self.is_jumping or userInput[pygame.K_DOWN]):
+            self.is_jumping = False
+            self.is_running = True
+            self.is_ducking = False
+
+    def jump(self):
+        self.image = self.jump_img[0]
+        if self.curr_jump_vel < - self.JUMP_VEL:  # when dino touch ground after jump
+            self.is_jumping = False
+            self.curr_jump_vel = self.JUMP_VEL  # stop jump
+            self.dino_rect.y = self.Y_POS
+        if self.is_jumping:
+            self.dino_rect.y -= self.curr_jump_vel * 2  # go up by jump velocity
+            self.curr_jump_vel -= 1.2  # handle gravity
+
+    def run(self):
+        self.image = self.run_img[self.animation_frame // 10]
+        self.dino_rect = self.image.get_rect()
+        self.dino_rect.x = self.X_POS
+        self.dino_rect.y = self.Y_POS
+        self.animation_frame += 1
+
+    def duck(self):
+        self.image = self.duck_img[self.animation_frame // 10]
+        self.dino_rect = self.image.get_rect()
+        self.dino_rect.x = self.X_POS
+        self.dino_rect.y = self.Y_POS_DUCK
+        self.animation_frame += 1
+
+    def draw(self, screen):
+        # draw object on screen
+        screen.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
+
+
+class Obstacle:
+    def __init__(self, image, type):
+        self.image = image
+        self.type = type
+        self.rect = self.image[self.type].get_rect()
+        self.rect.x = WIDTH
+
+    def update(self):
+        self.rect.x -= game_speed
+        if self.rect.x < -self.rect.width:  # if obstacle is out of screen it gets eliminated
+            obstacles.pop()
+
+    def draw(self, screen):
+        screen.blit(self.image[self.type], self.rect)
+
+
+class SmallCactus(Obstacle):
+
+    def __init__(self, image,):
+        self.type = random.randint(0, 1)
+        super().__init__(image, self.type)
+        self.rect.y = 230
+
+
+class LargeCactus(Obstacle):
+
+    def __init__(self, image):
+        self.type = random.randint(0, 1)
+        super().__init__(image, self.type)
+        self.rect.y = 220
+
+
+class Ptero(Obstacle):
+
+    def __init__(self, image):
+        self.type = 0
+        super().__init__(image, self.type)
+        self.rect.y = 195
+        self.animation_frame = 0
+
+    def draw(self, screen):
+        if self.animation_frame >= 19:
+            self.animation_frame = 0
+        screen.blit(self.image[self.animation_frame//10], self.rect)
+        self.animation_frame += 1
+
+
+def main():
+    global game_speed, x_pos_bg, y_pos_bg, points, obstacles
+    running = True
+    dino = Dinosaur()
+    game_speed = 15
+
+    x_pos_bg = 0
+    y_pos_bg = 255
+
+    obstacles = []
+
+    points = 0
+    font = pygame.font.Font('freesansbold.ttf', 20)
+
+    def score():
+        global game_speed, points
+        points += 1
+
+        # set game difficulty
+        if points % 100 == 0:
+            game_speed += 1
+
+        # show score
+        text = font.render(f"Score: {str(points)}", True, (0, 0, 0))
+        textRect = text.get_rect()
+        textRect.center = (700, 40)
+        screen.blit(text, textRect)
+
+    def background():
+        global x_pos_bg, y_pos_bg, game_speed
+        image_width = background_img.get_width()
+        screen.blit(background_img, (x_pos_bg, y_pos_bg))
+        screen.blit(background_img, (image_width + x_pos_bg, y_pos_bg))
+
+        # repeat background
+        if x_pos_bg <= -image_width:
+            screen.blit(background_img, (image_width+x_pos_bg, y_pos_bg))
+            x_pos_bg = 0
+        x_pos_bg -= game_speed
+
+    while running:
+        clock.tick(FPS)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        screen.fill(WHITE)
+        userInput = pygame.key.get_pressed()
+
+        # choose obstacle
+        if len(obstacles) == 0:
+            n = random.randint(0, 2)
+            if n == 0:
+                obstacles.append(SmallCactus(cactus_small))
+            if n == 1:
+                obstacles.append(LargeCactus(cactus_big))
+            if n == 2:
+                obstacles.append(Ptero(ptero))
+
+        for obstacle in obstacles:
+            obstacle.draw(screen)
+            obstacle.update()
+            if dino.dino_rect.colliderect(obstacle.rect):
+                sleep(2)
+                running = False
+                main()
+
+        background()
+        score()
+
+        dino.update(userInput)
+        dino.draw(screen)
+        pygame.display.update()
+
+
+main()
