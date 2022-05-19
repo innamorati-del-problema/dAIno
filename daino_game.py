@@ -5,7 +5,7 @@ from time import sleep
 
 WIDTH = 800
 HEIGHT = 400
-FPS = 30
+FPS = 60
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -45,7 +45,7 @@ class Dinosaur:
     X_POS = 20
     Y_POS = 220
     Y_POS_DUCK = 237
-    JUMP_VEL = 8.5
+    JUMP_VEL = 8
 
     def __init__(self):
         self.duck_img = dino_duck
@@ -98,7 +98,7 @@ class Dinosaur:
             self.dino_rect.y = self.Y_POS
         if self.is_jumping:
             self.dino_rect.y -= self.curr_jump_vel * 2  # go up by jump velocity
-            self.curr_jump_vel -= 1.2  # handle gravity
+            self.curr_jump_vel -= 0.7  # handle gravity
 
     def run(self):
         self.image = self.run_img[self.animation_frame // 10]
@@ -126,10 +126,10 @@ class Obstacle:
         self.rect = self.image[self.type].get_rect()
         self.rect.x = WIDTH
 
-    def update(self):
+    def update(self, index):
         self.rect.x -= game_speed
         if self.rect.x < -self.rect.width:  # if obstacle is out of screen it gets eliminated
-            obstacles.pop()
+            obstacles[index] = None
 
     def draw(self, screen):
         screen.blit(self.image[self.type], self.rect)
@@ -170,12 +170,12 @@ def main():
     global game_speed, x_pos_bg, y_pos_bg, points, obstacles
     running = True
     dino = Dinosaur()
-    game_speed = 15
+    game_speed = 8
 
     x_pos_bg = 0
     y_pos_bg = 255
 
-    obstacles = []
+    obstacles = [None, None]
 
     points = 0
     font = pygame.font.Font('freesansbold.ttf', 20)
@@ -185,7 +185,7 @@ def main():
         points += 1
 
         # set game difficulty
-        if points % 100 == 0:
+        if points % 300 == 0 and game_speed < 20:
             game_speed += 1
 
         # show score
@@ -217,22 +217,34 @@ def main():
         userInput = pygame.key.get_pressed()
 
         # choose obstacle
-        if len(obstacles) == 0:
+        if obstacles[0] == None:
             n = random.randint(0, 2)
             if n == 0:
-                obstacles.append(SmallCactus(cactus_small))
+                obstacles[0] = SmallCactus(cactus_small)
             if n == 1:
-                obstacles.append(LargeCactus(cactus_big))
+                obstacles[0] = LargeCactus(cactus_big)
             if n == 2:
-                obstacles.append(Ptero(ptero))
+                obstacles[0] = Ptero(ptero)
 
-        for obstacle in obstacles:
-            obstacle.draw(screen)
-            obstacle.update()
-            if dino.dino_rect.colliderect(obstacle.rect):
-                sleep(2)
-                running = False
-                main()
+        if obstacles[1] == None and obstacles[0].rect.x < WIDTH//2:
+            n = random.randint(0, 2)
+            if n == 0:
+                obstacles[1] = SmallCactus(cactus_small)
+            if n == 1:
+                obstacles[1] = LargeCactus(cactus_big)
+            if n == 2:
+                obstacles[1] = Ptero(ptero)
+
+        for index, obstacle in enumerate(obstacles):
+            if obstacle:
+                obstacle.draw(screen)
+                obstacle.update(index)
+                if dino.dino_rect.colliderect(obstacle.rect):
+                    # pygame.draw.rect(screen, RED, dino.dino_rect, 2)
+                    sleep(2)
+                    obstacles = []
+                    running = False
+                    main()
 
         background()
         score()
