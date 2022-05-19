@@ -5,13 +5,15 @@ from time import sleep
 
 WIDTH = 800
 HEIGHT = 400
-FPS = 60
+FPS = 50
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+
+high_points = 0
 
 # Assets
 dino_run = [pygame.image.load(os.path.join("assets/Dino", "dino_run_1.png")),
@@ -178,21 +180,31 @@ def main():
     obstacles = [None, None]
 
     points = 0
+
     font = pygame.font.Font('freesansbold.ttf', 20)
 
     def score():
-        global game_speed, points
+        global game_speed, points, high_points
         points += 1
 
         # set game difficulty
         if points % 300 == 0 and game_speed < 20:
             game_speed += 1
 
+        high_points = max(points, high_points)
+
         # show score
         text = font.render(f"Score: {str(points)}", True, (0, 0, 0))
         textRect = text.get_rect()
-        textRect.center = (700, 40)
+        textRect.center = (550, 40)
         screen.blit(text, textRect)
+
+        # show highscore
+        highscore = font.render(
+            f"High Score: {str(high_points)}", True, (0, 0, 0))
+        highscoreRect = highscore.get_rect()
+        highscoreRect.center = (700, 40)
+        screen.blit(highscore, highscoreRect)
 
     def background():
         global x_pos_bg, y_pos_bg, game_speed
@@ -241,7 +253,8 @@ def main():
                 obstacle.update(index)
                 if dino.dino_rect.colliderect(obstacle.rect):
                     # pygame.draw.rect(screen, RED, dino.dino_rect, 2)
-                    sleep(2)
+
+                    sleep(0.5)
                     obstacles = []
                     running = False
                     main()
