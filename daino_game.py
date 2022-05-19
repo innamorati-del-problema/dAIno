@@ -53,6 +53,7 @@ class Dinosaur:
         self.duck_img = dino_duck
         self.run_img = dino_run
         self.jump_img = dino_jump
+        self.jump_mul = 2.0
 
         self.is_running = True
         self.is_jumping = False
@@ -81,11 +82,18 @@ class Dinosaur:
             self.is_jumping = True
             self.is_running = False
             self.is_ducking = False
+            self.jump_mul = 2.0
 
         elif userInput[pygame.K_DOWN] and not self.is_jumping:
             self.is_jumping = False
             self.is_running = False
             self.is_ducking = True
+
+        elif userInput[pygame.K_UP] and not self.is_jumping:
+            self.is_jumping = True
+            self.is_running = False
+            self.is_ducking = False
+            self.jump_mul = 1.3
 
         elif not (self.is_jumping or userInput[pygame.K_DOWN]):
             self.is_jumping = False
@@ -99,8 +107,9 @@ class Dinosaur:
             self.curr_jump_vel = self.JUMP_VEL  # stop jump
             self.dino_rect.y = self.Y_POS
         if self.is_jumping:
-            self.dino_rect.y -= self.curr_jump_vel * 2  # go up by jump velocity
-            self.curr_jump_vel -= 0.7  # handle gravity
+            self.dino_rect.y -= self.curr_jump_vel * \
+                self.jump_mul  # go up by jump velocity
+            self.curr_jump_vel -= 1  # handle gravity
 
     def run(self):
         self.image = self.run_img[self.animation_frame // 10]
@@ -185,7 +194,7 @@ def main():
 
     def score():
         global game_speed, points, high_points
-        points += 1
+        points += 0.1
 
         # set game difficulty
         if points % 300 == 0 and game_speed < 20:
@@ -194,14 +203,14 @@ def main():
         high_points = max(points, high_points)
 
         # show score
-        text = font.render(f"Score: {str(points)}", True, (0, 0, 0))
+        text = font.render(f"Score: {str(int(points))}", True, (0, 0, 0))
         textRect = text.get_rect()
         textRect.center = (550, 40)
         screen.blit(text, textRect)
 
         # show highscore
         highscore = font.render(
-            f"High Score: {str(high_points)}", True, (0, 0, 0))
+            f"High Score: {str(int(high_points))}", True, (0, 0, 0))
         highscoreRect = highscore.get_rect()
         highscoreRect.center = (700, 40)
         screen.blit(highscore, highscoreRect)
