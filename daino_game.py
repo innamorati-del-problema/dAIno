@@ -62,9 +62,8 @@ class Dinosaur:
         self.animation_frame = 0
         self.curr_jump_vel = self.JUMP_VEL
         self.image = self.run_img[0]
-        self.dino_rect = self.image.get_rect()
-        self.dino_rect.x = self.X_POS
-        self.dino_rect.y = self.Y_POS
+        self.dino_rect = pygame.Rect(
+            self.X_POS, self.Y_POS, self.image.get_width()-20,  self.image.get_height()-20)
 
     def update(self, userInput):
         if self.is_ducking:
@@ -113,9 +112,8 @@ class Dinosaur:
 
     def run(self):
         self.image = self.run_img[self.animation_frame // 10]
-        self.dino_rect = self.image.get_rect()
-        self.dino_rect.x = self.X_POS
-        self.dino_rect.y = self.Y_POS
+        self.dino_rect = pygame.Rect(
+            self.X_POS, self.Y_POS, self.image.get_width()-20,  self.image.get_height()-20)
         self.animation_frame += 1
 
     def duck(self):
