@@ -138,7 +138,7 @@ class Daino:
                 obstacle.draw(self.screen)
                 obstacle.update(index, self.obstacles, self.game_speed)
                 if self.dino.dino_rect.colliderect(obstacle.rect):
-                    reward += self.score - self.high_score
+                    reward = -100
                     game_over = True
                     return game_over, self.score, reward
 
@@ -147,8 +147,8 @@ class Daino:
 
         self.dino.update(action)
         self.dino.draw(self.screen)
+        reward += 0.1 * self.game_speed
         pygame.display.update()
-
 
         return game_over, self.score, reward
 
@@ -290,8 +290,8 @@ class Ptero(Obstacle):
     def __init__(self, image):
         self.type = 0
         super().__init__(image, self.type)
-        n = random.randint(0, 1)
-        self.rect.y = 195 if n == 0 else 170
+        # n = random.randint(0, 1)
+        self.rect.y = 170  # if n == 0 else 170
         self.animation_frame = 0
 
     def draw(self, screen):
