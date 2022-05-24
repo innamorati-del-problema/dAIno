@@ -2,13 +2,22 @@ import os
 import pygame
 import random
 from time import sleep
+from enum import Enum
+
+
+class Action(Enum):
+    JUMP = 1
+    SHORT_JUMP = 2
+    DUCK = 3
+    RUN = 4
+
 
 pygame.init()
 font = pygame.font.Font('arial.ttf', 25)
 
 WIDTH = 800
 HEIGHT = 400
-FPS = 50
+FPS = 400
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -92,7 +101,7 @@ class Daino:
             self.x_pos_bg = 0
         self.x_pos_bg -= self.game_speed
 
-    def play_step(self):
+    def play_step(self, action):
         self.clock.tick(FPS)
 
         for event in pygame.event.get():
@@ -101,7 +110,6 @@ class Daino:
                 quit()
 
         self.screen.fill(WHITE)
-        userInput = pygame.key.get_pressed()
 
         # choose obstacle
         if self.obstacles[0] == None:
@@ -123,23 +131,26 @@ class Daino:
                 self.obstacles[1] = Ptero(self.ptero)
 
         # Check for game over
+        reward = 0
         game_over = False
         for index, obstacle in enumerate(self.obstacles):
             if obstacle:
                 obstacle.draw(self.screen)
                 obstacle.update(index, self.obstacles, self.game_speed)
                 if self.dino.dino_rect.colliderect(obstacle.rect):
+                    reward += self.score - self.high_score
                     game_over = True
-                    return game_over, self.score
+                    return game_over, self.score, reward
 
         self.background()
         self.score_update()
 
-        self.dino.update(userInput)
+        self.dino.update(action)
         self.dino.draw(self.screen)
         pygame.display.update()
 
-        return game_over, self.score
+
+        return game_over, self.score, reward
 
     def reset(self):
         self.obstacles = [None, None]
@@ -169,7 +180,8 @@ class Dinosaur:
         self.dino_rect = pygame.Rect(
             self.X_POS, self.Y_POS, self.image.get_width()-20,  self.image.get_height()-20)
 
-    def update(self, userInput):
+    def update(self, ai_action):
+
         if self.is_ducking:
             self.duck()
         if self.is_jumping:
@@ -180,25 +192,34 @@ class Dinosaur:
         if self.animation_frame >= 20:
             self.animation_frame = 0
 
+        # actions
+        # [1,0,0,0] -> Jump
+        # [0,1,0,0] -> Duck
+        # [0,0,1,0] -> Short Jump
+        # [0,0,0,1] -> Run
+
+        actions = [Action.JUMP, Action.DUCK, Action.SHORT_JUMP, Action.RUN]
+        action = actions[ai_action.index(1)]
+
         # Keyboard bindings
-        if userInput[pygame.K_SPACE] and not self.is_jumping:
+        if action == Action.JUMP and not self.is_jumping:
             self.is_jumping = True
             self.is_running = False
             self.is_ducking = False
             self.jump_mul = 2.0
 
-        elif userInput[pygame.K_DOWN] and not self.is_jumping:
+        elif action == Action.DUCK and not self.is_jumping:
             self.is_jumping = False
             self.is_running = False
             self.is_ducking = True
 
-        elif userInput[pygame.K_UP] and not self.is_jumping:
+        elif action == Action.SHORT_JUMP and not self.is_jumping:
             self.is_jumping = True
             self.is_running = False
             self.is_ducking = False
             self.jump_mul = 1.3
 
-        elif not (self.is_jumping or userInput[pygame.K_DOWN]):
+        elif action == Action.RUN and not self.is_jumping:
             self.is_jumping = False
             self.is_running = True
             self.is_ducking = False
@@ -269,7 +290,8 @@ class Ptero(Obstacle):
     def __init__(self, image):
         self.type = 0
         super().__init__(image, self.type)
-        self.rect.y = 195
+        n = random.randint(0, 1)
+        self.rect.y = 195 if n == 0 else 170
         self.animation_frame = 0
 
     def draw(self, screen):
