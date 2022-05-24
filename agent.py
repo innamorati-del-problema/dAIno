@@ -6,6 +6,7 @@ from game import SmallCactus, LargeCactus, Ptero
 import torch
 import random
 from model import Linear_QNet, QTrainer
+import torch.nn as nn
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
@@ -34,8 +35,8 @@ def get_state(game):
             obs_distance = second_obs_distance
             next = 1
 
-    state = [max(0, obs_distance), game.game_speed,
-             isinstance(game.obstacles[next], SmallCactus),
+    state = [isinstance(game.obstacles[next], SmallCactus),
+             max(0, obs_distance), game.game_speed,
              isinstance(game.obstacles[next], LargeCactus),
              isinstance(game.obstacles[next], Ptero)]  # game.obstacles[next].rect.y == 170]
 
@@ -71,7 +72,12 @@ def get_action(state):
     else:
         state0 = torch.tensor(state, dtype=torch.float)
         prediction = model(state0)
-        move = torch.argmax(prediction).item()
+
+        pred_probab = nn.Softmax(dim=0)(prediction)
+
+        move = pred_probab.argmax(0)
+
+        #move = torch.argmax(prediction).item()
         final_move[move] = 1
 
     return final_move
@@ -85,8 +91,8 @@ while True:
         # get move
         final_move = get_action(state_old)
     else:
-        game_over, score, reward = game.play_step([0,0,0,1])
-        
+        game_over, score, reward = game.play_step([0, 0, 0, 1])
+
         if game_over:
             # train long memory / experience replay, plot results
             game.reset()
@@ -95,8 +101,6 @@ while True:
             train_long_memory()
 
         continue
-
-
 
     # perform move and get new state
     game_over, score, reward = game.play_step(final_move)
@@ -112,4 +116,3 @@ while True:
         n_games += 1
         print(f"Game n: {n_games}")
         train_long_memory()
-
