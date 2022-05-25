@@ -7,10 +7,11 @@ import torch
 import random
 from model import Linear_QNet, QTrainer
 import torch.nn as nn
+import os
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.002
+LR = 0.001
 
 game = Daino()
 
@@ -19,8 +20,13 @@ epsilon = 0  # randomness
 gamma = 0.9  # discount rate
 memory = deque(maxlen=MAX_MEMORY)
 model = Linear_QNet(5, 512, 4)
+
+model_folder_path = './model'
+file_name = 'model.pth'
+file_name = os.path.join(model_folder_path, file_name)
+model.load_state_dict(torch.load(file_name))
+model.eval()
 trainer = QTrainer(model, lr=LR, gamma=gamma)
-last_high_score = 0
 
 
 def get_state(game):
@@ -44,6 +50,7 @@ def get_state(game):
              isinstance(game.obstacles[next], LargeCactus),
              isinstance(game.obstacles[next], Ptero)]  # game.obstacles[next].rect.y == 170]
 
+    print(f"{state}\r")
     return np.array(state, dtype=int)
 
 
@@ -80,6 +87,8 @@ def get_action(state):
         pred_probab = nn.Softmax(dim=0)(prediction)
 
         move = pred_probab.argmax(0)
+
+        #move = torch.argmax(prediction).item()
         final_move[move] = 1
 
     return final_move
@@ -100,27 +109,14 @@ while True:
             game.reset()
             n_games += 1
             print(f"Game n: {n_games}")
-            if game.high_score > last_high_score:
-                model.save()
-            last_high_score = max(last_high_score, game.high_score)
-            train_long_memory()
-
         continue
 
     # perform move and get new state
     game_over, score, reward = game.play_step(final_move)
     state_new = get_state(game)
 
-    # train short memory
-    # train_short_memory(state_old, final_move, reward, state_new, game_over)
-    remember(state_old, final_move, reward, state_new, game_over)
-
     if game_over:
         # train long memory / experience replay, plot results
         game.reset()
         n_games += 1
         print(f"Game n: {n_games}")
-        if game.high_score > last_high_score:
-            model.save()
-        last_high_score = max(last_high_score, game.high_score)
-        train_long_memory()

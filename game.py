@@ -17,7 +17,7 @@ font = pygame.font.Font('arial.ttf', 25)
 
 WIDTH = 800
 HEIGHT = 400
-FPS = 400
+FPS = 40
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -28,9 +28,10 @@ BLUE = (0, 0, 255)
 
 class Daino:
 
-    def __init__(self, width=WIDTH, heigth=HEIGHT):
+    def __init__(self, width=WIDTH, heigth=HEIGHT, fps=40):
         self.w = width
         self.h = heigth
+        self.fps = fps
 
         self.screen = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption("dAIno")
@@ -102,12 +103,16 @@ class Daino:
         self.x_pos_bg -= self.game_speed
 
     def play_step(self, action):
-        self.clock.tick(FPS)
+        self.clock.tick(self.fps)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+        if pygame.key.get_pressed()[pygame.K_q]:
+            self.fps += 10
+        if pygame.key.get_pressed()[pygame.K_w]:
+            self.fps -= 10
 
         self.screen.fill(WHITE)
 
@@ -291,7 +296,7 @@ class Ptero(Obstacle):
         self.type = 0
         super().__init__(image, self.type)
         # n = random.randint(0, 1)
-        self.rect.y = 170  # if n == 0 else 170
+        self.rect.y = 195  # if n == 0 else 170
         self.animation_frame = 0
 
     def draw(self, screen):
