@@ -5,41 +5,50 @@ import numpy as np
 from game import SmallCactus, LargeCactus, Ptero
 import torch
 import random
-from model import Linear_QNet, QTrainer
+from new_model import Linear_QNet, QTrainer
 import torch.nn as nn
+from math import inf
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
-LR = 0.001
+LR = 1e-3
 
 game = Daino()
+
+# specify device
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 n_games = 0
 epsilon = 0  # randomness
 gamma = 0.9  # discount rate
 memory = deque(maxlen=MAX_MEMORY)
 model = Linear_QNet(5, 256, 4)
+model.to(device)
 trainer = QTrainer(model, lr=LR, gamma=gamma)
 
 
 def get_state(game):
-    next = 0
-    if game.obstacles[0] != None:
-        obs_distance = game.obstacles[0].rect.x - game.dino.dino_rect.x
-        next = 0
-    else:
-        obs_distance = game.w
-    if game.obstacles[1] != None:
-        second_obs_distance = game.obstacles[1].rect.x - game.dino.dino_rect.x
-        if second_obs_distance < obs_distance:
-            obs_distance = second_obs_distance
-            next = 1
+    min_distance = 800
+    
 
-    state = [isinstance(game.obstacles[next], SmallCactus),
-             max(0, obs_distance), game.game_speed,
-             isinstance(game.obstacles[next], LargeCactus),
-             isinstance(game.obstacles[next], Ptero)]  # game.obstacles[next].rect.y == 170]
+    isSmallCactus = False
+    isLargeCactus = False
+    isPtero = False
 
+    for obstacle in game.obstacles:
+        # print(obstacle)
+        if obstacle and obstacle.rect.x < min_distance:
+            min_distance = obstacle.rect.x
+            isSmallCactus = isinstance(obstacle, SmallCactus)
+            isLargeCactus = isinstance(obstacle, LargeCactus)
+            isPtero = isinstance(obstacle, Ptero)
+
+    min_distance = min_distance//2
+
+
+    state = [min_distance, game.game_speed, isSmallCactus, isLargeCactus, isPtero]  # game.obstacles[next].rect.y == 170]
+
+    print(state)
     return np.array(state, dtype=int)
 
 

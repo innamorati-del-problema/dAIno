@@ -235,6 +235,8 @@ def main():
         screen.fill(WHITE)
         userInput = pygame.key.get_pressed()
 
+        #run every seconds
+
         # choose obstacle
         if obstacles[0] == None:
             n = random.randint(0, 2)
