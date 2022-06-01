@@ -8,6 +8,7 @@ import random
 from model import Linear_QNet, QTrainer
 import torch.nn as nn
 import math
+import pygame
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
@@ -26,30 +27,27 @@ last_high_score = 0
 
 
 def get_state(game):
-    next = 0
+    min_distance = 800
+    
+
+    isSmallCactus = False
+    isLargeCactus = False
+    isPtero = False
     ptero_low = 0
-    if game.obstacles[0] != None:
-        obs_distance = game.obstacles[0].rect.x - game.dino.dino_rect.x
-        if isinstance(game.obstacles[next], Ptero):
-            ptero_low = 1 if game.obstacles[next].rect.y == 195 else 0
-        next = 0
-    else:
-        obs_distance = game.w
-    if game.obstacles[1] != None:
-        second_obs_distance = game.obstacles[1].rect.x - game.dino.dino_rect.x
-        if second_obs_distance < obs_distance:
-            obs_distance = second_obs_distance
-            if isinstance(game.obstacles[next], Ptero):
-                ptero_low = 1 if game.obstacles[next].rect.y == 195 else 0
-            next = 1
 
-    obs_distance = obs_distance // 10
+    for obstacle in game.obstacles:
+        # print(obstacle)
+        if obstacle and obstacle.rect.x < min_distance:
+            min_distance = obstacle.rect.x
+            isSmallCactus = isinstance(obstacle, SmallCactus)
+            isLargeCactus = isinstance(obstacle, LargeCactus)
+            isPtero = isinstance(obstacle, Ptero)
+            if isPtero:
+                ptero_low = 1 if obstacle.rect.y == 210 else 0
 
-    state = [max(0, obs_distance), game.game_speed,
-             isinstance(game.obstacles[next], SmallCactus),
-             isinstance(game.obstacles[next], LargeCactus),
-             isinstance(game.obstacles[next], Ptero),
-             ptero_low]  # game.obstacles[next].rect.y == 170]
+    min_distance = min_distance//10
+
+    state = [max(min_distance, 0), game.game_speed, isSmallCactus, isLargeCactus, isPtero, ptero_low]
 
     return np.array(state, dtype=int)
 
@@ -75,9 +73,10 @@ def train_short_memory(state, action, reward, next_state, done):
 
 def get_action(state):
     # random moves: tradeoff exploration / exploitation
-    epsilon = 300 - n_games
+    epsilon = 4 - (n_games/100)
     final_move = [0, 0, 0, 0]
-    if random.randint(0, 100) < epsilon:
+    if random.random() < epsilon:
+        print("random move")
         move = random.randint(0, 3)
         final_move[move] = 1
     else:
@@ -92,11 +91,15 @@ def get_action(state):
 
     return final_move
 
-
+not_saved=True
 while True:
     if n_games % 50 == 0:
         trainer.target_model.load_state_dict(trainer.model.state_dict())
-        print(trainer.target_model)
+
+    if not_saved and game.score > 10000:
+        model.save()
+        not_saved = False
+           
 
     state_old = get_state(game)
 

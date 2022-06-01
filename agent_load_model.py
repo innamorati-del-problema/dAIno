@@ -29,30 +29,27 @@ model.eval()
 
 
 def get_state(game):
-    next = 0
+    min_distance = 800
+    
+
+    isSmallCactus = False
+    isLargeCactus = False
+    isPtero = False
     ptero_low = 0
-    if game.obstacles[0] != None:
-        obs_distance = game.obstacles[0].rect.x - game.dino.dino_rect.x
-        if isinstance(game.obstacles[next], Ptero):
-            ptero_low = 1 if game.obstacles[next].rect.y == 195 else 0
-        next = 0
-    else:
-        obs_distance = game.w
-    if game.obstacles[1] != None:
-        second_obs_distance = game.obstacles[1].rect.x - game.dino.dino_rect.x
-        if second_obs_distance < obs_distance:
-            obs_distance = second_obs_distance
-            if isinstance(game.obstacles[next], Ptero):
-                ptero_low = 1 if game.obstacles[next].rect.y == 195 else 0
-            next = 1
 
-    obs_distance = obs_distance // 10
+    for obstacle in game.obstacles:
+        # print(obstacle)
+        if obstacle and obstacle.rect.x < min_distance:
+            min_distance = obstacle.rect.x
+            isSmallCactus = isinstance(obstacle, SmallCactus)
+            isLargeCactus = isinstance(obstacle, LargeCactus)
+            isPtero = isinstance(obstacle, Ptero)
+            if isPtero:
+                ptero_low = 1 if obstacle.rect.y == 210 else 0
 
-    state = [max(0, obs_distance), game.game_speed,
-             isinstance(game.obstacles[next], SmallCactus),
-             isinstance(game.obstacles[next], LargeCactus),
-             isinstance(game.obstacles[next], Ptero),
-             ptero_low]  # game.obstacles[next].rect.y == 170]
+    min_distance = min_distance//10
+
+    state = [max(min_distance, 0), game.game_speed, isSmallCactus, isLargeCactus, isPtero, ptero_low]
 
     return np.array(state, dtype=int)
 

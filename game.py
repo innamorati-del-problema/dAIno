@@ -3,7 +3,7 @@ import pygame
 import random
 from time import sleep
 from enum import Enum
-
+from collections import deque
 
 class Action(Enum):
     JUMP = 1
@@ -28,10 +28,10 @@ BLUE = (0, 0, 255)
 
 class Daino:
 
-    def __init__(self, width=WIDTH, heigth=HEIGHT, fps=40):
+    def __init__(self, width=WIDTH, heigth=HEIGHT):
         self.w = width
         self.h = heigth
-        self.fps = fps
+        self.curr_frame = 0
 
         self.screen = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption("dAIno")
@@ -62,15 +62,16 @@ class Daino:
         self.high_score = 0
         self.x_pos_bg = 0
         self.y_pos_bg = 255
-        self.obstacles = [None, None]
+        self.obstacles = deque()
         self.game_speed = 8
+        self.fps=40
         self.dino = Dinosaur(self.dino_duck, self.dino_run, self.dino_run)
 
     def score_update(self):
         self.score += 0.01 * self.game_speed
 
         # set game difficulty
-        if int(self.score) % 50 == 0 and self.game_speed < 20:
+        if int(self.score) % 50 == 0 and self.game_speed < 40:
             self.game_speed += 1
             self.score += 1
 
@@ -104,7 +105,7 @@ class Daino:
 
     def play_step(self, action):
         self.clock.tick(self.fps)
-
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -113,54 +114,60 @@ class Daino:
             self.fps += 10
         if pygame.key.get_pressed()[pygame.K_w]:
             self.fps -= 10
+        if pygame.key.get_pressed()[pygame.K_r]:
+            self.fps = 40
+            
+
 
         self.screen.fill(WHITE)
 
-        # choose obstacle
-        if self.obstacles[0] == None:
+        #run every second
+        if(self.curr_frame%35==0):
+            # choose obstacle
+        
             n = random.randint(0, 2)
             if n == 0:
-                self.obstacles[0] = SmallCactus(self.cactus_small)
+                self.obstacles.append(SmallCactus(self.cactus_small))
             if n == 1:
-                self.obstacles[0] = LargeCactus(self.cactus_big)
+                self.obstacles.append(LargeCactus(self.cactus_big))
             if n == 2:
-                self.obstacles[0] = Ptero(self.ptero)
+                self.obstacles.append(Ptero(self.ptero))
 
-        if self.obstacles[1] == None and self.obstacles[0].rect.x < WIDTH//2:
-            n = random.randint(0, 2)
-            if n == 0:
-                self.obstacles[1] = SmallCactus(self.cactus_small)
-            if n == 1:
-                self.obstacles[1] = LargeCactus(self.cactus_big)
-            if n == 2:
-                self.obstacles[1] = Ptero(self.ptero)
+            self.curr_frame=0
 
         # Check for game over
         reward = 0
         game_over = False
+        if len(self.obstacles)>0 and self.obstacles[0].rect.x < -self.obstacles[0].rect.width:  # if obstacle is out of screen it gets eliminated
+            self.obstacles.popleft()
         for index, obstacle in enumerate(self.obstacles):
             if obstacle:
-                obstacle.draw(self.screen)
-                obstacle.update(index, self.obstacles, self.game_speed)
-                if self.dino.dino_rect.colliderect(obstacle.rect):
+                if  self.dino.dino_rect.colliderect(obstacle.rect):
                     reward = -100
                     game_over = True
                     return game_over, self.score, reward
+                obstacle.draw(self.screen)
+                # obstacle.update(index, self.obstacles, self.game_speed)
+                obstacle.rect.x -= self.game_speed
+                
+                
 
         self.background()
         self.score_update()
 
         self.dino.update(action)
         self.dino.draw(self.screen)
-        reward += 0.1*self.game_speed
+        reward += 0.1 * self.game_speed
+        self.curr_frame+=1
         pygame.display.update()
-
+ 
         return game_over, self.score, reward
 
     def reset(self):
-        self.obstacles = [None, None]
+        self.obstacles = deque()
         self.score = 0
         self.game_speed = 8
+        self.curr_frame = 0
 
 
 class Dinosaur:
@@ -265,10 +272,10 @@ class Obstacle:
         self.rect = self.image[self.type].get_rect()
         self.rect.x = WIDTH
 
-    def update(self, index, obstacles, game_speed):
-        self.rect.x -= game_speed
-        if self.rect.x < -self.rect.width:  # if obstacle is out of screen it gets eliminated
-            obstacles[index] = None
+    # def update(self, index, obstacles, game_speed):
+    #     self.rect.x -= game_speed
+    #     if self.rect.x < -self.rect.width:  # if obstacle is out of screen it gets eliminated
+    #         obstacles.pop()
 
     def draw(self, screen):
         screen.blit(self.image[self.type], self.rect)
@@ -296,7 +303,7 @@ class Ptero(Obstacle):
         self.type = 0
         super().__init__(image, self.type)
         n = random.randint(0, 1)
-        self.rect.y = 170 if n == 0 else 195
+        self.rect.y = 170  if n == 0 else 210
         self.animation_frame = 0
 
     def draw(self, screen):
