@@ -19,12 +19,11 @@ n_games = 0
 epsilon = 0  # randomness
 gamma = 0.9  # discount rate
 memory = deque(maxlen=MAX_MEMORY)
-model = Linear_QNet(5, 512, 4)
 
 model_folder_path = './model'
 file_name = 'model.pth'
 file_name = os.path.join(model_folder_path, file_name)
-model.load_state_dict(torch.load(file_name))
+model = torch.load(file_name)
 model.eval()
 trainer = QTrainer(model, lr=LR, gamma=gamma)
 
@@ -42,16 +41,16 @@ def get_state(game):
             obs_distance = second_obs_distance
             next = 1
 
-    obs_distance = obs_distance // 3
+    obs_distance = obs_distance / 800
 
     state = [max(0, obs_distance),
-             game.game_speed,
+             (game.game_speed-9)/11,
              isinstance(game.obstacles[next], SmallCactus),
              isinstance(game.obstacles[next], LargeCactus),
              isinstance(game.obstacles[next], Ptero)]  # game.obstacles[next].rect.y == 170]
 
-    print(f"{state}\r")
-    return np.array(state, dtype=int)
+    state = np.array(state, dtype=np.float)
+    return state
 
 
 def remember(state, action, reward, next_state, done):
@@ -88,7 +87,7 @@ def get_action(state):
 
         move = pred_probab.argmax(0)
 
-        #move = torch.argmax(prediction).item()
+        # move = torch.argmax(prediction).item()
         final_move[move] = 1
 
     return final_move

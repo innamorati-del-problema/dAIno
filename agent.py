@@ -8,9 +8,9 @@ import random
 from model import Linear_QNet, QTrainer
 import torch.nn as nn
 
-MAX_MEMORY = 100_000
-BATCH_SIZE = 1000
-LR = 0.002
+MAX_MEMORY = 10_000
+BATCH_SIZE = 128
+LR = 0.001
 
 game = Daino()
 
@@ -18,8 +18,9 @@ n_games = 0
 epsilon = 0  # randomness
 gamma = 0.9  # discount rate
 memory = deque(maxlen=MAX_MEMORY)
-model = Linear_QNet(5, 512, 4)
-trainer = QTrainer(model, lr=LR, gamma=gamma)
+model = Linear_QNet(5, 256, 4)
+target_model = Linear_QNet(5, 256, 4)
+trainer = QTrainer(model, target_model,  lr=LR, gamma=gamma)
 last_high_score = 0
 
 
@@ -36,7 +37,7 @@ def get_state(game):
             obs_distance = second_obs_distance
             next = 1
 
-    obs_distance = obs_distance // 3
+    obs_distance = obs_distance // 10
 
     state = [max(0, obs_distance),
              game.game_speed,
@@ -44,7 +45,8 @@ def get_state(game):
              isinstance(game.obstacles[next], LargeCactus),
              isinstance(game.obstacles[next], Ptero)]  # game.obstacles[next].rect.y == 170]
 
-    return np.array(state, dtype=int)
+    state = np.array(state, dtype=np.float)
+    return state
 
 
 def remember(state, action, reward, next_state, done):
@@ -68,24 +70,29 @@ def train_short_memory(state, action, reward, next_state, done):
 
 def get_action(state):
     # random moves: tradeoff exploration / exploitation
-    epsilon = 100 - n_games
+    epsilon = 300 - n_games
     final_move = [0, 0, 0, 0]
-    if random.randint(0, 200) < epsilon:
+    if random.randint(0, 100) < epsilon:
         move = random.randint(0, 3)
         final_move[move] = 1
     else:
         state0 = torch.tensor(state, dtype=torch.float)
-        prediction = model(state0)
+        with torch.no_grad():
 
-        pred_probab = nn.Softmax(dim=0)(prediction)
+            prediction = model(state0)
 
-        move = pred_probab.argmax(0)
-        final_move[move] = 1
+            # pred_probab = nn.Softmax(dim=0)(prediction)
+            move = prediction.argmax(0)
+            final_move[move] = 1
 
     return final_move
 
 
 while True:
+
+    if n_games % 75 == 0:
+        trainer.target_model.load_state_dict(trainer.model.state_dict())
+        print(trainer.target_model)
 
     state_old = get_state(game)
 
