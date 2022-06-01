@@ -25,7 +25,7 @@ file_name = 'model.pth'
 file_name = os.path.join(model_folder_path, file_name)
 model = torch.load(file_name)
 model.eval()
-trainer = QTrainer(model, lr=LR, gamma=gamma)
+#trainer = QTrainer(model, model, lr=LR, gamma=gamma)
 
 
 def get_state(game):
@@ -41,15 +41,15 @@ def get_state(game):
             obs_distance = second_obs_distance
             next = 1
 
-    obs_distance = obs_distance / 800
+    obs_distance = obs_distance // 3
 
     state = [max(0, obs_distance),
-             (game.game_speed-9)/11,
+             game.game_speed-9,
              isinstance(game.obstacles[next], SmallCactus),
              isinstance(game.obstacles[next], LargeCactus),
              isinstance(game.obstacles[next], Ptero)]  # game.obstacles[next].rect.y == 170]
 
-    state = np.array(state, dtype=np.float)
+    state = np.array(state, dtype=np.int)
     return state
 
 

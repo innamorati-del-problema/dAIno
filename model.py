@@ -31,8 +31,8 @@ class QTrainer:
         self.gamma = gamma
         self.model = model
         self.target_model = target_model
-        self.optimizer = optim.RMSprop(model.parameters())
-        self.criterion = nn.SmoothL1Loss()
+        self.optimizer = optim.Adam(model.parameters(), lr=self.lr)
+        self.criterion = nn.MSELoss()
 
     def train_step(self, state, action, reward, next_state, done):
         state = torch.tensor(state, dtype=torch.float)
@@ -50,11 +50,11 @@ class QTrainer:
             Q_new = reward[idx]
             if not done[idx]:
                 Q_new = reward[idx] + (self.gamma *
-                                       torch.max(self.target_model(next_state[idx])))
+                                       torch.max(self.model(next_state[idx])))
 
             target[idx][torch.argmax(action[idx]).item()] = Q_new
 
-        loss = self.criterion(pred, target)
+        loss = self.criterion(target, pred)
         self.optimizer.zero_grad()
         loss.backward()
 

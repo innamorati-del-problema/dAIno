@@ -7,9 +7,10 @@ import torch
 import random
 from model import Linear_QNet, QTrainer
 import torch.nn as nn
+import math
 
-MAX_MEMORY = 10_000
-BATCH_SIZE = 128
+MAX_MEMORY = 100_000
+BATCH_SIZE = 1000
 LR = 0.001
 
 game = Daino()
@@ -18,8 +19,8 @@ n_games = 0
 epsilon = 0  # randomness
 gamma = 0.9  # discount rate
 memory = deque(maxlen=MAX_MEMORY)
-model = Linear_QNet(5, 256, 4)
-target_model = Linear_QNet(5, 256, 4)
+model = Linear_QNet(5, 512, 4)
+target_model = Linear_QNet(5, 512, 4)
 trainer = QTrainer(model, target_model,  lr=LR, gamma=gamma)
 last_high_score = 0
 
@@ -37,15 +38,16 @@ def get_state(game):
             obs_distance = second_obs_distance
             next = 1
 
-    obs_distance = obs_distance // 10
+    # round to nearest decimal
+    obs_distance = round(obs_distance / 800, 2) 
 
     state = [max(0, obs_distance),
-             game.game_speed,
+             (game.game_speed-9)/11,
              isinstance(game.obstacles[next], SmallCactus),
              isinstance(game.obstacles[next], LargeCactus),
              isinstance(game.obstacles[next], Ptero)]  # game.obstacles[next].rect.y == 170]
 
-    state = np.array(state, dtype=np.float)
+    state = np.array(state, dtype=np.float32)
     return state
 
 
@@ -89,8 +91,7 @@ def get_action(state):
 
 
 while True:
-
-    if n_games % 75 == 0:
+    if n_games % 150 == 0:
         trainer.target_model.load_state_dict(trainer.model.state_dict())
         print(trainer.target_model)
 
@@ -103,10 +104,13 @@ while True:
         game_over, score, reward = game.play_step([0, 0, 0, 1])
 
         if game_over:
+            print(f"Game n: {n_games} Score: {int(score)} High score: {int(last_high_score)} {chr(13)}")
             # train long memory / experience replay, plot results
             game.reset()
             n_games += 1
-            print(f"Game n: {n_games}")
+            if random.randint(0, 100) < 300-n_games:
+                game.game_speed = random.randint(9,20)
+            
             if game.high_score > last_high_score:
                 model.save()
             last_high_score = max(last_high_score, game.high_score)
@@ -120,13 +124,17 @@ while True:
 
     # train short memory
     # train_short_memory(state_old, final_move, reward, state_new, game_over)
-    remember(state_old, final_move, reward, state_new, game_over)
+    if(n_games%4==0):
+        remember(state_old, final_move, reward, state_new, game_over)
 
     if game_over:
         # train long memory / experience replay, plot results
+        print(f"Game n: {n_games} Score: {int(score)} High score: {int(last_high_score)} {chr(13)}")
         game.reset()
         n_games += 1
-        print(f"Game n: {n_games}")
+        if random.randint(0, 100) < 300-n_games:
+                game.game_speed = random.randint(9,20)
+        
         if game.high_score > last_high_score:
             model.save()
         last_high_score = max(last_high_score, game.high_score)

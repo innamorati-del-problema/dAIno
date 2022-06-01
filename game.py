@@ -143,7 +143,7 @@ class Daino:
                 obstacle.draw(self.screen)
                 obstacle.update(index, self.obstacles, self.game_speed)
                 if self.dino.dino_rect.colliderect(obstacle.rect):
-                    reward = -1
+                    reward = -100
                     game_over = True
                     return game_over, self.score, reward
 
@@ -152,7 +152,7 @@ class Daino:
 
         self.dino.update(action)
         self.dino.draw(self.screen)
-        reward += 1
+        reward += 0.1*self.game_speed
         pygame.display.update()
 
         return game_over, self.score, reward
