@@ -30,8 +30,11 @@ model.eval()
 
 def get_state(game):
     next = 0
+    ptero_low = 0
     if game.obstacles[0] != None:
         obs_distance = game.obstacles[0].rect.x - game.dino.dino_rect.x
+        if isinstance(game.obstacles[next], Ptero):
+            ptero_low = 1 if game.obstacles[next].rect.y == 195 else 0
         next = 0
     else:
         obs_distance = game.w
@@ -39,18 +42,19 @@ def get_state(game):
         second_obs_distance = game.obstacles[1].rect.x - game.dino.dino_rect.x
         if second_obs_distance < obs_distance:
             obs_distance = second_obs_distance
+            if isinstance(game.obstacles[next], Ptero):
+                ptero_low = 1 if game.obstacles[next].rect.y == 195 else 0
             next = 1
 
-    obs_distance = obs_distance // 3
+    obs_distance = obs_distance // 10
 
-    state = [max(0, obs_distance),
-             game.game_speed-9,
+    state = [max(0, obs_distance), game.game_speed,
              isinstance(game.obstacles[next], SmallCactus),
              isinstance(game.obstacles[next], LargeCactus),
-             isinstance(game.obstacles[next], Ptero)]  # game.obstacles[next].rect.y == 170]
+             isinstance(game.obstacles[next], Ptero),
+             ptero_low]  # game.obstacles[next].rect.y == 170]
 
-    state = np.array(state, dtype=np.int)
-    return state
+    return np.array(state, dtype=int)
 
 
 def remember(state, action, reward, next_state, done):
@@ -74,21 +78,15 @@ def train_short_memory(state, action, reward, next_state, done):
 
 def get_action(state):
     # random moves: tradeoff exploration / exploitation
-    epsilon = 100 - n_games
-    final_move = [0, 0, 0, 0]
-    if random.randint(0, 200) < epsilon:
-        move = random.randint(0, 3)
-        final_move[move] = 1
-    else:
-        state0 = torch.tensor(state, dtype=torch.float)
-        prediction = model(state0)
+    final_move = [0,0,0,0]
+    state0 = torch.tensor(state, dtype=torch.float)
+    prediction = model(state0)
+    pred_probab = nn.Softmax(dim=0)(prediction)
 
-        pred_probab = nn.Softmax(dim=0)(prediction)
+    move = pred_probab.argmax(0)
 
-        move = pred_probab.argmax(0)
-
-        # move = torch.argmax(prediction).item()
-        final_move[move] = 1
+	# move = torch.argmax(prediction).item()
+    final_move[move] = 1
 
     return final_move
 

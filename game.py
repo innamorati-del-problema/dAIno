@@ -295,8 +295,8 @@ class Ptero(Obstacle):
     def __init__(self, image):
         self.type = 0
         super().__init__(image, self.type)
-        # n = random.randint(0, 1)
-        self.rect.y = 195  # if n == 0 else 170
+        n = random.randint(0, 1)
+        self.rect.y = 170 if n == 0 else 195
         self.animation_frame = 0
 
     def draw(self, screen):

@@ -39,23 +39,27 @@ class QTrainer:
         next_state = torch.tensor(next_state, dtype=torch.float)
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
+        # (n, x)
+
 
         # 1: predicted Q values with current state
         pred = self.model(state)
-
-        # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
 
         target = pred.clone()
         for idx in range(len(done)):
             Q_new = reward[idx]
             if not done[idx]:
-                Q_new = reward[idx] + (self.gamma *
-                                       torch.max(self.model(next_state[idx])))
+                Q_new = reward[idx] + self.gamma * \
+                    torch.max(self.model(next_state[idx]))
 
             target[idx][torch.argmax(action[idx]).item()] = Q_new
 
-        loss = self.criterion(target, pred)
+
+        # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
+        # pred.clone()
+        # preds[argmax(action)] = Q_new
         self.optimizer.zero_grad()
+        loss = self.criterion(pred, target)
         loss.backward()
 
         self.optimizer.step()

@@ -19,16 +19,19 @@ n_games = 0
 epsilon = 0  # randomness
 gamma = 0.9  # discount rate
 memory = deque(maxlen=MAX_MEMORY)
-model = Linear_QNet(5, 512, 4)
-target_model = Linear_QNet(5, 512, 4)
+model = Linear_QNet(6, 1024, 4)
+target_model = Linear_QNet(6, 1024, 4)
 trainer = QTrainer(model, target_model,  lr=LR, gamma=gamma)
 last_high_score = 0
 
 
 def get_state(game):
     next = 0
+    ptero_low = 0
     if game.obstacles[0] != None:
         obs_distance = game.obstacles[0].rect.x - game.dino.dino_rect.x
+        if isinstance(game.obstacles[next], Ptero):
+            ptero_low = 1 if game.obstacles[next].rect.y == 195 else 0
         next = 0
     else:
         obs_distance = game.w
@@ -36,19 +39,19 @@ def get_state(game):
         second_obs_distance = game.obstacles[1].rect.x - game.dino.dino_rect.x
         if second_obs_distance < obs_distance:
             obs_distance = second_obs_distance
+            if isinstance(game.obstacles[next], Ptero):
+                ptero_low = 1 if game.obstacles[next].rect.y == 195 else 0
             next = 1
 
-    # round to nearest decimal
-    obs_distance = round(obs_distance / 800, 2) 
+    obs_distance = obs_distance // 10
 
-    state = [max(0, obs_distance),
-             (game.game_speed-9)/11,
+    state = [max(0, obs_distance), game.game_speed,
              isinstance(game.obstacles[next], SmallCactus),
              isinstance(game.obstacles[next], LargeCactus),
-             isinstance(game.obstacles[next], Ptero)]  # game.obstacles[next].rect.y == 170]
+             isinstance(game.obstacles[next], Ptero),
+             ptero_low]  # game.obstacles[next].rect.y == 170]
 
-    state = np.array(state, dtype=np.float32)
-    return state
+    return np.array(state, dtype=int)
 
 
 def remember(state, action, reward, next_state, done):
@@ -91,7 +94,7 @@ def get_action(state):
 
 
 while True:
-    if n_games % 150 == 0:
+    if n_games % 50 == 0:
         trainer.target_model.load_state_dict(trainer.model.state_dict())
         print(trainer.target_model)
 
@@ -124,8 +127,7 @@ while True:
 
     # train short memory
     # train_short_memory(state_old, final_move, reward, state_new, game_over)
-    if(n_games%4==0):
-        remember(state_old, final_move, reward, state_new, game_over)
+    remember(state_old, final_move, reward, state_new, game_over)
 
     if game_over:
         # train long memory / experience replay, plot results
