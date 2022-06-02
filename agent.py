@@ -7,7 +7,7 @@ import torch
 import random
 from model import Linear_QNet, QTrainer
 import torch.nn as nn
-
+import cv2
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
@@ -98,6 +98,26 @@ while True:
     if not_saved and game.score > 10000:
         model.save()
         not_saved = False
+
+    frame = game.take_screeshot()
+
+    frame = frame.copy()[150:250, :, :]
+    mask = frame.copy()[150:250, :, 0]
+    
+    
+    mask = cv2.bitwise_not(mask)
+    # find contours and draw them on the frame
+    #frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
+    #_, frame = cv2.threshold(frame, 0, 255, 240)
+    cnts, _ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    print(cnts)
+    for cnt in cnts:
+        cv2.drawContours(frame, [cnt], -1, (0, 255, 255), 2)
+
+
+    cv2.imshow('frame', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
            
 
     state_old = get_state(game)

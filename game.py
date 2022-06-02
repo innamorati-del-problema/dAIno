@@ -4,6 +4,7 @@ import random
 from time import sleep
 from enum import Enum
 from collections import deque
+import numpy as np
 
 class Action(Enum):
     JUMP = 1
@@ -168,6 +169,13 @@ class Daino:
         self.score = 0
         self.game_speed = 8
         self.curr_frame = 0
+    
+    def take_screeshot(self):
+        # array of self.screen dimensions
+        img = pygame.surfarray.array3d(pygame.display.get_surface())
+        # transpose array
+        img = np.transpose(img, (1, 0, 2))
+        return img
 
 
 class Dinosaur:
