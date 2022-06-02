@@ -7,8 +7,7 @@ import torch
 import random
 from model import Linear_QNet, QTrainer
 import torch.nn as nn
-import math
-import pygame
+
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
