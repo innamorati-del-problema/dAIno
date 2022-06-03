@@ -219,7 +219,10 @@ class Dinosaur:
         # [0,0,0,1] -> Run
 
         actions = [Action.JUMP, Action.DUCK, Action.SHORT_JUMP, Action.RUN]
-        action = actions[ai_action.index(1)]
+        if ai_action != [0,0,0,0] :
+            action = actions[ai_action.index(1)]
+        else:
+            action = [0,0,0,0]
 
         # Keyboard bindings
         if action == Action.JUMP and not self.is_jumping:
@@ -315,7 +318,8 @@ class Ptero(Obstacle):
         self.animation_frame = 0
 
     def draw(self, screen):
-        if self.animation_frame >= 19:
-            self.animation_frame = 0
-        screen.blit(self.image[self.animation_frame//10], self.rect)
-        self.animation_frame += 1
+        # if self.animation_frame >= 19:
+        #     self.animation_frame = 0
+        # screen.blit(self.image[self.animation_frame//10], self.rect)
+        # self.animation_frame += 1
+        screen.blit(self.image[0], self.rect)

@@ -19,36 +19,52 @@ n_games = 0
 epsilon = 0  # randomness
 gamma = 0.9  # discount rate
 memory = deque(maxlen=MAX_MEMORY)
-model = Linear_QNet(6, 1024, 4)
-target_model = Linear_QNet(6, 1024, 4)
+model = Linear_QNet(4, 1024, 4)
+target_model = Linear_QNet(4, 1024, 4)
 trainer = QTrainer(model, target_model,  lr=LR, gamma=gamma)
 last_high_score = 0
 
 
 def get_state(game):
-    min_distance = 800
+    min_x = 800
+
+    obs_width = 0
+    obs_height = 0
+    game_speed = 0
+
+    ss1 = game.take_screeshot()
+    game.play_step([0,0,0,0])
+    ss2 = game.take_screeshot()
+
+    mask1 = ss1[170:255, :, 0]
+    mask2 = ss2[170:255, :, 0]
+
+    mask1 = cv2.bitwise_not(mask1)
+    mask2 = cv2.bitwise_not(mask2)                     
     
 
-    isSmallCactus = False
-    isLargeCactus = False
-    isPtero = False
-    ptero_low = 0
+    cnts1, _ = cv2.findContours(mask1, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts2, _ = cv2.findContours(mask2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    for obstacle in game.obstacles:
-        # print(obstacle)
-        if obstacle and obstacle.rect.x < min_distance:
-            min_distance = obstacle.rect.x
-            isSmallCactus = isinstance(obstacle, SmallCactus)
-            isLargeCactus = isinstance(obstacle, LargeCactus)
-            isPtero = isinstance(obstacle, Ptero)
-            if isPtero:
-                ptero_low = 1 if obstacle.rect.y == 210 else 0
+    for cnt in cnts1:
+        (x,y,w,h) = cv2.boundingRect(cnt)
+        if x > 80 and x < min_x:
+            obs_height = h+y
+            obs_width = w
+            min_x = x
+    
+    for cnt in cnts2:
+        (x,y,w,h) = cv2.boundingRect(cnt)
+        if x > 80 and x < min_x:
+            game_speed = min_x - x
 
-    min_distance = min_distance//10
 
-    state = [max(min_distance, 0), game.game_speed, isSmallCactus, isLargeCactus, isPtero, ptero_low]
+
+    state = [min_x//10, obs_height, obs_width, game_speed]
 
     return np.array(state, dtype=int)
+
+    
 
 
 def remember(state, action, reward, next_state, done):
@@ -75,7 +91,6 @@ def get_action(state):
     epsilon = 4 - (n_games/100)
     final_move = [0, 0, 0, 0]
     if random.random() < epsilon:
-        print("random move")
         move = random.randint(0, 3)
         final_move[move] = 1
     else:
@@ -99,27 +114,7 @@ while True:
         model.save()
         not_saved = False
 
-    frame = game.take_screeshot()
-
-    frame = frame.copy()[150:250, :, :]
-    mask = frame.copy()[150:250, :, 0]
     
-    
-    mask = cv2.bitwise_not(mask)
-    # find contours and draw them on the frame
-    #frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
-    #_, frame = cv2.threshold(frame, 0, 255, 240)
-    cnts, _ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-    print(cnts)
-    for cnt in cnts:
-        cv2.drawContours(frame, [cnt], -1, (0, 255, 255), 2)
-
-
-    cv2.imshow('frame', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-           
-
     state_old = get_state(game)
 
     if not game.dino.is_jumping:
