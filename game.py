@@ -153,7 +153,7 @@ class Daino:
                 
                 
 
-        self.background()
+        # self.background()
         self.score_update()
 
         self.dino.update(action)
@@ -172,10 +172,10 @@ class Daino:
     
     def take_screeshot(self):
         # array of self.screen dimensions
-        img = pygame.surfarray.array3d(pygame.display.get_surface())
+        img = np.uint8(pygame.surfarray.array3d(pygame.display.get_surface()))
         # transpose array
         img = np.transpose(img, (1, 0, 2))
-        return img
+        return img.copy()
 
 
 class Dinosaur:

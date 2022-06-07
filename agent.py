@@ -33,11 +33,12 @@ def get_state(game):
     game_speed = 0
 
     ss1 = game.take_screeshot()
+    
     game.play_step([0,0,0,0])
     ss2 = game.take_screeshot()
 
-    mask1 = ss1[170:255, :, 0]
-    mask2 = ss2[170:255, :, 0]
+    mask1 = ss1.copy()[150:265, :, 1]
+    mask2 = ss2[150:265, :, 1]
 
     mask1 = cv2.bitwise_not(mask1)
     mask2 = cv2.bitwise_not(mask2)                     
@@ -48,6 +49,8 @@ def get_state(game):
 
     for cnt in cnts1:
         (x,y,w,h) = cv2.boundingRect(cnt)
+        ss1 = cv2.rectangle(ss1, (x, y+150), (x+w, y+h+150), (0,255,0), 1)
+        cv2.imshow('frame', ss1)
         if x > 80 and x < min_x:
             obs_height = h+y
             obs_width = w
@@ -62,6 +65,7 @@ def get_state(game):
 
     state = [min_x//10, obs_height, obs_width, game_speed]
 
+    print(state)
     return np.array(state, dtype=int)
 
     
